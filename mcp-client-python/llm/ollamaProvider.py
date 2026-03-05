@@ -25,7 +25,7 @@ class OllamaProvider(LLMProvider):
             payload["tools"] = tools
 
         async with self.session.post(
-            self.url
+            self.url,
             json=payload,
         ) as resp:
 

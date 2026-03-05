@@ -83,7 +83,7 @@ class MCPClient:
         ### ???
         print(response)
 
-        msg = response["message"]
+        msg = response["messages"]
 
         output = []
 
