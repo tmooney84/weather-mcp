@@ -55,7 +55,6 @@ class MCPClient:
        )
 
     async def process_query(self, query: str) -> str:
-        
         messages = [{"role": "user", "content": query}]
 
         ### ??? Should it be response instead of tool_response
@@ -75,53 +74,52 @@ class MCPClient:
         ]
 
         ### ???
-        response = await self.llm.chat(
-            messages,
-            tools,
-        )
+        response = await self.llm.chat(messages, tools)
 
         ### ???
-        print(response)
+        print("=======================================")
+        print(f"Here is the response: {response}")
 
-        msg = response["messages"]
+        msg = response["message"]
 
         output = []
 
         if msg.get("content"):
-            output.append(
-                msg["content"]
-            )
+            output.append(msg["content"])
 
         if msg.get("tool_calls"):
+            messages.append(msg)
+            
             for call in msg["tool_calls"]:
+                tool_name = call["function"]["name"]
 
-                name = call["function"]["name"]
+                # Some LLMs return arguments as a dict, others as a JSON string
+                tool_args = call["function"]["arguments"]
+    
+                if isinstance(tool_args, str):
+                    tool_args = json.loads(tool_args)
 
-                args = json.loads(
-                    call["function"]["arguments"]
-                )
+                #MCP server returns a CallToolResult object
+                result = await self.session.call_tool(tool_name, tool_args)
 
-                result = await self.session.call_tool(
-                    name,
-                    args,
-                )
+                # MCP tool results contain a 'content' list
+                # We need to convert that to a string for the LLM
+                tool_content = "".join([c.text for c in result.content if hasattr(c, 'text')])
 
                 messages.append(msg)
 
                 messages.append(
                     {
                         "role": "tool",
-                        "content": result.content,
+                        "content": tool_content,
+                        "tool_call_id": call.get("id") # Required by many providers
                     }
                 )
 
-                response = await self.llm.chat(
-                    messages
-                )
+                final_response = await self.llm.chat(messages)
 
-                output.append(
-                    response["message"]["content"]
-                )
+            if final_response["message"].get("content"):
+                output.append(final_response["message"]["content"])
         
         return "\n".join(output)
     
