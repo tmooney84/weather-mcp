@@ -71,6 +71,13 @@ class MCPClient:
         ]
 
         # Initial Claude API call
+
+        # if certain keywords found,,, fuzzy parse the text for select
+        # looks
+
+        # else if weather today in location parse location...if error found
+        #fall back to model
+
         response = self.anthropic.messages.create(
             model=ANTHROPIC_MODEL, max_tokens=1000, messages=messages, tools=available_tools
         )
@@ -80,7 +87,7 @@ class MCPClient:
 
         for content in response.content:
             if content.type == "text":
-                final_text.append(content.text)
+                final_text.append(content.text)   ### "THINKING" strings to the USER final_text
             elif content.type == "tool_use":
                 tool_name = content.name
                 tool_args = content.input

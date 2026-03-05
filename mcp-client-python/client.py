@@ -3,7 +3,6 @@ import sys
 import json
 from contextlib import AsyncExitStack
 from pathlib import Path
-
 from dotenv import load_dotenv
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
@@ -39,7 +38,7 @@ class MCPClient:
        stdio_transport = await self.exit_stack.enter_async_context(
            stdio_client(server_params)
        )
-
+        #should these be self.stdio, self.write = stdio_transport
        stdio, write = stdio_transport
 
        self.session = await self.exit_stack.enter_async_context(
@@ -48,24 +47,19 @@ class MCPClient:
 
        await self.session.initialize()
 
-       tools = await self.session.list_tools()
-
+       response = await self.session.list_tools()
+       tools = response.tools
        print(
            "Connected tools:",
-           [t.name for t in tools.tools],
+           [tool.name for tool in tools],
        )
 
-    async def process_query(
-            self,
-            query,
-    ):
+    async def process_query(self, query: str) -> str:
         
-        messages = [
-            {
-                "role": "user",
-                "content": query,
-            }
-        ]
+        messages = [{"role": "user", "content": query}]
+
+        ### ??? Should it be response instead of tool_response
+        tool_response = await self.session.list_tools()
 
         tools = [
             {
@@ -73,16 +67,21 @@ class MCPClient:
                 "function": {
                     "name": t.name,
                     "description": t.description,
+                    ### ??? "input_schema": t.inputSchema
                     "parameters": t.inputSchema
                 },
             }
             for t in tool_response.tools
         ]
 
+        ### ???
         response = await self.llm.chat(
             messages,
             tools,
         )
+
+        ### ???
+        print(response)
 
         msg = response["message"]
 
@@ -157,10 +156,11 @@ async def main():
         await client.connect_to_server(sys.argv[1])
     
         await client.chat_loop()
-    
+
     finally:
         await client.cleanup()
 
 if __name__ == "__main__":
+    
     import sys
     asyncio.run(main())

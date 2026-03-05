@@ -6,7 +6,8 @@ class OllamaProvider(LLMProvider):
     def __init__(
         self,
         model="granite4.0-h-tiny",
-        url="http://localhost:11434/api/chat",
+        ### url="http://localhost:11434/api/chat",
+        url="http://localhost:11435/api/chat",
     ):
         self.model = model
         self.url = url
